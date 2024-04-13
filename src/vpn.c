@@ -243,18 +243,14 @@ static int tcp_accept(Context *context, int listen_fd)
     printf("Connection attempt from [%s]\n", client_ip);
     context->congestion = 0;
     fcntl(client_fd, F_SETFL, fcntl(client_fd, F_GETFL, 0) | O_NONBLOCK);
-    if (context->client_fd != -1 &&
-        memcmp(context->client_ip, client_ip, sizeof context->client_ip) != 0) {
-        fprintf(stderr, "Closing: a session from [%s] is already active\n", context->client_ip);
-        (void) close(client_fd);
-        errno = EBUSY;
-        return -1;
-    }
     if (server_key_exchange(context, client_fd) != 0) {
         fprintf(stderr, "Authentication failed\n");
         (void) close(client_fd);
         errno = EACCES;
         return -1;
+    }
+    if (context->client_fd != -1) {
+        client_disconnect(context);
     }
     memcpy(context->client_ip, client_ip, sizeof context->client_ip);
     return client_fd;
